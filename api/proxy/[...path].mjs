@@ -35,8 +35,8 @@ try {
     console.error(`[代理日志] 解析环境变量 USER_AGENTS_JSON 出错: ${e.message}。使用默认 User Agent。`);
 }
 
-// 广告过滤在代理中禁用，由播放器处理
-const FILTER_DISCONTINUITY = false;
+// 广告过滤在代理中启用
+const FILTER_DISCONTINUITY = true;
 
 
 // --- 辅助函数 ---
@@ -209,20 +209,64 @@ function processMediaPlaylist(url, content) {
     }
     const lines = content.split('\n');
     const output = [];
+    let inAdSegment = false;
+    let adStartIndex = -1;
+    
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
         // 保留最后一个空行
-        if (!line && i === lines.length - 1) { output.push(line); continue; }
+        if (!line && i === lines.length - 1) { 
+            output.push(line); 
+            continue; 
+        }
         if (!line) continue; // 跳过中间空行
-        // 广告过滤已禁用
-        if (line.startsWith('#EXT-X-KEY')) { output.push(processKeyLine(line, baseUrl)); continue; }
-        if (line.startsWith('#EXT-X-MAP')) { output.push(processMapLine(line, baseUrl)); continue; }
-        if (line.startsWith('#EXTINF')) { output.push(line); continue; }
+        
+        // 广告过滤逻辑
+        if (FILTER_DISCONTINUITY) {
+            // 检测广告开始：#EXT-X-DISCONTINUITY 后跟着 #EXT-X-KEY:METHOD=NONE 通常是广告
+            if (line.startsWith('#EXT-X-DISCONTINUITY')) {
+                // 检查下一行是否是 #EXT-X-KEY:METHOD=NONE
+                const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : '';
+                if (nextLine.startsWith('#EXT-X-KEY:METHOD=NONE')) {
+                    inAdSegment = true;
+                    adStartIndex = i;
+                    logDebug(`检测到广告开始: ${url} 行 ${i + 1}`);
+                    continue; // 跳过当前的 #EXT-X-DISCONTINUITY
+                }
+            }
+            
+            // 检测广告结束：遇到下一个 #EXT-X-DISCONTINUITY
+            if (inAdSegment && line.startsWith('#EXT-X-DISCONTINUITY')) {
+                inAdSegment = false;
+                adStartIndex = -1;
+                logDebug(`检测到广告结束: ${url} 行 ${i + 1}`);
+                continue; // 跳过广告结束的 #EXT-X-DISCONTINUITY
+            }
+            
+            // 如果在广告片段中，跳过所有行
+            if (inAdSegment) {
+                continue;
+            }
+        }
+        
+        if (line.startsWith('#EXT-X-KEY')) { 
+            output.push(processKeyLine(line, baseUrl)); 
+            continue; 
+        }
+        if (line.startsWith('#EXT-X-MAP')) { 
+            output.push(processMapLine(line, baseUrl)); 
+            continue; 
+        }
+        if (line.startsWith('#EXTINF')) { 
+            output.push(line); 
+            continue; 
+        }
         // 处理 URL 行
         if (!line.startsWith('#')) {
             const absoluteUrl = resolveUrl(baseUrl, line);
             logDebug(`重写媒体片段: 原始='${line}', 解析后='${absoluteUrl}'`);
-            output.push(rewriteUrlToProxy(absoluteUrl)); continue;
+            output.push(rewriteUrlToProxy(absoluteUrl)); 
+            continue;
         }
         // 保留其他 M3U8 标签
         output.push(line);
