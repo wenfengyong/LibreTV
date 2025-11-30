@@ -473,17 +473,16 @@ function initPlayer(videoUrl) {
         },
         controls: [
             {
-                position: 'right',
-                html: '<button class="artplayer-icon artplayer-icon-prev" title="上一集"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"></path></svg></button>',
-                click: function () {
-                    playPreviousEpisode();
-                },
-            },
-            {
-                position: 'right',
-                html: '<button class="artplayer-icon artplayer-icon-next" title="下一集"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></button>',
-                click: function () {
+                name: 'next-episode',
+                position: 'left',
+                html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>',
+                tooltip: '切换到下一集',
+                click: function() {
                     playNextEpisode();
+                },
+                mounted: function() {
+                    // 初始化时检查按钮状态
+                    updateNextEpisodeButton();
                 },
             },
         ],
@@ -867,6 +866,27 @@ function updateButtonStates() {
         nextButton.classList.add('bg-gray-700', 'cursor-not-allowed');
         nextButton.classList.remove('bg-[#222]', 'hover:bg-[#333]');
         nextButton.setAttribute('disabled', '');
+    }
+
+    // 更新播放器控制栏中的下一集按钮
+    updateNextEpisodeButton();
+}
+
+// 更新播放器控制栏中的下一集按钮状态
+function updateNextEpisodeButton() {
+    if (!art || !art.controls || !art.controls['next-episode']) {
+        return;
+    }
+
+    const nextEpisodeBtn = art.controls['next-episode'];
+    if (currentEpisodeIndex < currentEpisodes.length - 1) {
+        // 有下一集，启用按钮
+        nextEpisodeBtn.style.opacity = '1';
+        nextEpisodeBtn.style.pointerEvents = 'auto';
+    } else {
+        // 没有下一集，禁用按钮
+        nextEpisodeBtn.style.opacity = '0.5';
+        nextEpisodeBtn.style.pointerEvents = 'none';
     }
 }
 
