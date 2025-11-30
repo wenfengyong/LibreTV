@@ -1,3 +1,35 @@
+// 一致性匹配判断函数
+function isMatch(query, item) {
+    if (!query || !item) return false;
+    
+    // 将查询词转换为小写，用于不区分大小写匹配
+    const lowerQuery = query.toLowerCase().trim();
+    if (!lowerQuery) return true;
+    
+    // 拆分查询词为关键词数组
+    const keywords = lowerQuery.split(/[\s\-_]+/).filter(keyword => keyword.length > 0);
+    if (keywords.length === 0) return true;
+    
+    // 获取需要匹配的字段值，转换为小写
+    const vodName = (item.vod_name || '').toLowerCase();
+    const vodActor = (item.vod_actor || '').toLowerCase();
+    const vodDirector = (item.vod_director || '').toLowerCase();
+    const vodClass = (item.vod_class || '').toLowerCase();
+    const vodYear = (item.vod_year || '').toLowerCase();
+    
+    // 合并所有字段为一个字符串，用于全局匹配
+    const allFields = `${vodName} ${vodActor} ${vodDirector} ${vodClass} ${vodYear}`;
+    
+    // 检查是否所有关键词都能在某个字段中找到
+    return keywords.every(keyword => {
+        return vodName.includes(keyword) ||
+               vodActor.includes(keyword) ||
+               vodDirector.includes(keyword) ||
+               vodClass.includes(keyword) ||
+               vodYear.includes(keyword);
+    });
+}
+
 async function searchByAPIAndKeyWord(apiId, query) {
     try {
         let apiUrl, apiName, apiBaseUrl;
@@ -46,7 +78,7 @@ async function searchByAPIAndKeyWord(apiId, query) {
         }
         
         // 处理第一页结果
-        const results = data.list.map(item => ({
+        let results = data.list.map(item => ({
             ...item,
             source_name: apiName,
             source_code: apiId,
@@ -119,7 +151,10 @@ async function searchByAPIAndKeyWord(apiId, query) {
             });
         }
         
-        return results;
+        // 应用一致性匹配判断，过滤结果
+        const filteredResults = results.filter(item => isMatch(query, item));
+        
+        return filteredResults;
     } catch (error) {
         console.warn(`API ${apiId} 搜索失败:`, error);
         return [];
