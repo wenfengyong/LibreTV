@@ -471,6 +471,22 @@ function initPlayer(videoUrl) {
         moreVideoAttr: {
             crossOrigin: 'anonymous',
         },
+        controls: [
+            {
+                position: 'right',
+                html: '<button class="artplayer-icon artplayer-icon-prev" title="上一集"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"></path></svg></button>',
+                click: function () {
+                    playPreviousEpisode();
+                },
+            },
+            {
+                position: 'right',
+                html: '<button class="artplayer-icon artplayer-icon-next" title="下一集"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></button>',
+                click: function () {
+                    playNextEpisode();
+                },
+            },
+        ],
         customType: {
             m3u8: function (video, url) {
                 // 清理之前的HLS实例
